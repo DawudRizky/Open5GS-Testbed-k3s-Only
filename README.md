@@ -189,6 +189,59 @@ sudo k3s crictl images
 
 ---
 
+## Step 4: Deploy Open5GS ke K3s
+
+Selesaikan proses build dan import image, lalu lakukan deployment Open5GS ke K3s dengan langkah berikut:
+
+#### 1. Buat Script Deploy Menjadi Eksekusi
+Pastikan script deploy dapat dieksekusi:
+```bash
+chmod +x deploy-k3s-calico.sh
+```
+
+#### 2. Jalankan Script Deploy
+Jalankan script untuk melakukan deployment Open5GS ke K3s:
+```bash
+sudo ./deploy-k3s-calico.sh
+```
+
+#### 3. Monitor Proses Deployment
+Pantau proses deployment di terminal baru:
+```bash
+kubectl get pods -n open5gs -w
+```
+
+Deployment akan melakukan:
+- Membuat namespace `open5gs`
+- Setup Calico IPPool
+- Membuat service MongoDB
+- Deploy Network Function (NF) sesuai urutan dependency
+- Generate deployment report
+
+Tunggu hingga semua pod berstatus `Running` (±2-3 menit).
+
+#### 4. Verifikasi Semua Pod
+Setelah deployment selesai, verifikasi semua pod sudah berjalan:
+```bash
+kubectl get pods -n open5gs
+```
+Output yang diharapkan (semua harus Running):
+```
+NAME      READY   STATUS    RESTARTS   AGE
+nrf-0     1/1     Running   0          2m
+scp-0     1/1     Running   0          2m
+udr-0     1/1     Running   0          2m
+udm-0     1/1     Running   0          2m
+ausf-0    1/1     Running   0          2m
+pcf-0     1/1     Running   0          2m
+nssf-0    1/1     Running   0          2m
+amf-0     1/1     Running   0          2m
+smf-0     1/1     Running   0          2m
+upf-0     1/1     Running   0          2m
+```
+
+---
+
 ![Testbed Topology](https://drive.google.com/uc?id=1VCuvkoGtpC5SbvN5Yh-Xgq4_tZxdyuVR)
 ![Testbed Topology](https://drive.google.com/uc?id=1qOcIZ4t-bWd-eu3ZYipLjrb_cpcNfb1J)
 ![Testbed Topology](https://drive.google.com/uc?id=1VTxtYT9YlRjkypaF5CXstBCVMEFaFiGd)
