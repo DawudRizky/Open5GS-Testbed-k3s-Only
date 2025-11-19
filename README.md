@@ -466,7 +466,7 @@ cd ~/Open5GS-Testbed/ueransim
 1. Dapatkan IP address host dan AMF pod:
 ```bash
 # Cek IP address host
-ip addr show | grep "inet " | grep -v "127.0.0.1"
+ip addr
 
 # Cek IP address AMF pod
 kubectl get pod amf-0 -n open5gs -o wide
@@ -475,25 +475,12 @@ kubectl get pod amf-0 -n open5gs -o wide
 ![look for host's IP](https://drive.google.com/uc?id=1VCuvkoGtpC5SbvN5Yh-Xgq4_tZxdyuVR)
 ![look for amf pod's IP](https://drive.google.com/uc?id=1qOcIZ4t-bWd-eu3ZYipLjrb_cpcNfb1J)
 
-2. Edit file `configs/open5gs-gnb-k3s.yaml` dengan perubahan berikut:
+2. Edit file `ueransim/configs/open5gs-gnb-k3s.yaml` dengan perubahan berikut:
 
 **a. Ubah semua gNB interfaces menggunakan IP host:**
-```yaml
-linkIp: 192.168.14.137    # Ganti dengan IP host Anda
-ngapIp: 192.168.14.137    # Ganti dengan IP host Anda
-gtpIp: 192.168.14.137     # Ganti dengan IP host Anda
-gtpAdvertiseIp: 192.168.14.137  # Ganti dengan IP host Anda (Optional)
-```
-
 ![modified gNB interfaces IP](https://drive.google.com/uc?id=1VTxtYT9YlRjkypaF5CXstBCVMEFaFiGd)
 
 **b. Ubah AMF address ke IP AMF pod:**
-```yaml
-amfConfigs:
-  - address: 10.10.0.5    # IP address AMF pod di K3s cluster
-    port: 38412
-```
-
 ![modified amfConfigs](https://drive.google.com/uc?id=1iNhtLFpN28bnESQ2rQrv0mCQvL5Od4Ar)
 
 **Catatan:** gNB harus binding ke interface host karena berjalan langsung di host (bukan di dalam K3s cluster). Jika menggunakan pod IP, gNB akan gagal binding dengan error "Cannot assign requested address".
@@ -510,12 +497,6 @@ cd ~/Open5GS-Testbed/ueransim
 ```
 
 Output yang diharapkan:
-```
-[sctp] [info] Trying to establish SCTP connection... (10.10.0.5:38412)
-[sctp] [info] SCTP connection established
-[ngap] [info] NG Setup procedure is successful
-```
-
 ![gNB simulator running correctly](https://drive.google.com/uc?id=1r81KYb-bvb1wJsF-tboxndxInz07R59j)
 
 ---
@@ -527,19 +508,14 @@ Output yang diharapkan:
 1. Dapatkan IP address host (jika belum):
 ```bash
 # Cek IP address host
-ip addr show | grep "inet " | grep -v "127.0.0.1"
+ip addr
 ```
 
 ![look for host's IP](https://drive.google.com/uc?id=1Y_wmfyxo4GmyB-Hd-4gs7FVasdiQsC_s)
 
-2. Edit file `configs/open5gs-ue-embb.yaml`:
+2. Edit file `ueransim/configs/open5gs-gnb-k3s.yaml`:
 
 **Ubah gnbSearchList menggunakan IP host:**
-```yaml
-gnbSearchList:
-  - 192.168.14.137    # Ganti dengan IP host Anda
-```
-
 ![modified gNBSearchlist](https://drive.google.com/uc?id=11u8lzLqJgwGNvb6GEyIUs4s7ty8WA8v7)
 
 **Catatan:** UE perlu mencari gNB menggunakan IP host karena gNB binding ke interface host. Jika menggunakan localhost atau IP lain, UE akan gagal menemukan cell ("no cell in coverage").
@@ -552,12 +528,6 @@ sudo ./build/nr-ue -c configs/open5gs-ue-embb.yaml
 ```
 
 Output yang diharapkan:
-```
-[nas] [info] UE switches to state [MM-REGISTERED/NORMAL-SERVICE]
-[nas] [info] PDU Session establishment is successful PSI[1]
-[app] [info] Connection setup for PDU session[1] is successful, TUN interface[uesimtun0, 10.45.0.X] is up.
-```
-
 ![UE simulator running correctly](https://drive.google.com/uc?id=19FR-0PNWKD2BIdNiK4OiQF8HYYrD3VDE)
 
 ---
@@ -605,10 +575,6 @@ curl --interface uesimtun0 -I https://www.google.com
 ---
 
 #### 1.5 Dokumentasi Hasil
-
-Catat hasil testing dalam format berikut:
-
----
 
 ## Tugas 1: Konektivitas Dasar
 
