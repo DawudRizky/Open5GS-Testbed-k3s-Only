@@ -440,28 +440,173 @@ Output yang diharapkan berupa JSON response dengan daftar NF yang terdaftar:
 
 ---
 
+## Tugas 1: Konektivitas Dasar
+
+### Objective
+
+Verify bahwa Open5GS deployment berfungsi dengan benar dan dapat connect dengan UERANSIM.
+
+### Prerequisites
+- K3s deployment selesai
+- Semua pods running
+- UERANSIM binary tersedia
+
+### Langkah-Langkah
+
+#### 1.1 Persiapkan UERANSIM pada Host Eksternal
+
+Navigasi ke direktori UERANSIM:
+```bash
+# Di mesin yang berbeda dari K3s (atau terminal baru dengan user biasa)
+cd ~/Open5GS-Testbed/ueransim
+```
+
+**Modifikasi gNB Config:**
+
+1. Dapatkan IP address host dan AMF pod:
+```bash
+# Cek IP address host
+ip addr show | grep "inet " | grep -v "127.0.0.1"
+
+# Cek IP address AMF pod
+kubectl get pod amf-0 -n open5gs -o wide
+```
+
 ![look for host's IP](https://drive.google.com/uc?id=1VCuvkoGtpC5SbvN5Yh-Xgq4_tZxdyuVR)
 ![look for amf pod's IP](https://drive.google.com/uc?id=1qOcIZ4t-bWd-eu3ZYipLjrb_cpcNfb1J)
+
+2. Edit file `configs/open5gs-gnb-k3s.yaml` dengan perubahan berikut:
+
+**a. Ubah semua gNB interfaces menggunakan IP host:**
+```yaml
+linkIp: 192.168.14.137    # Ganti dengan IP host Anda
+ngapIp: 192.168.14.137    # Ganti dengan IP host Anda
+gtpIp: 192.168.14.137     # Ganti dengan IP host Anda
+gtpAdvertiseIp: 192.168.14.137  # Ganti dengan IP host Anda (Optional)
+```
+
 ![modified gNB interfaces IP](https://drive.google.com/uc?id=1VTxtYT9YlRjkypaF5CXstBCVMEFaFiGd)
+
+**b. Ubah AMF address ke IP AMF pod:**
+```yaml
+amfConfigs:
+  - address: 10.10.0.5    # IP address AMF pod di K3s cluster
+    port: 38412
+```
+
 ![modified amfConfigs](https://drive.google.com/uc?id=1iNhtLFpN28bnESQ2rQrv0mCQvL5Od4Ar)
 
----
-
-![Testbed Topology](https://drive.google.com/uc?id=1r81KYb-bvb1wJsF-tboxndxInz07R59j)
+**Catatan:** gNB harus binding ke interface host karena berjalan langsung di host (bukan di dalam K3s cluster). Jika menggunakan pod IP, gNB akan gagal binding dengan error "Cannot assign requested address".
 
 ---
 
-![Testbed Topology](https://drive.google.com/uc?id=1Y_wmfyxo4GmyB-Hd-4gs7FVasdiQsC_s)
-![Testbed Topology](https://drive.google.com/uc?id=11u8lzLqJgwGNvb6GEyIUs4s7ty8WA8v7)
-![Testbed Topology](https://drive.google.com/uc?id=19FR-0PNWKD2BIdNiK4OiQF8HYYrD3VDE)
+#### 1.2 Start gNB Simulator
+
+Jalankan gNB simulator:
+```bash
+# Terminal 1 - gNB
+cd ~/Open5GS-Testbed/ueransim
+./build/nr-gnb -c configs/open5gs-gnb-k3s.yaml
+```
+
+Output yang diharapkan:
+```
+[sctp] [info] Trying to establish SCTP connection... (10.10.0.5:38412)
+[sctp] [info] SCTP connection established
+[ngap] [info] NG Setup procedure is successful
+```
+
+![gNB simulator running correctly](https://drive.google.com/uc?id=1r81KYb-bvb1wJsF-tboxndxInz07R59j)
 
 ---
 
-![Testbed Topology](https://drive.google.com/uc?id=1iUk_M_vvG5Wt9GxH_iq_vI_oa9eZTifI)
-![Testbed Topology](https://drive.google.com/uc?id=1VCdsllmpviIfT0d_-IsxdNmi4Tg4Jhp0)
-![Testbed Topology](https://drive.google.com/uc?id=1wbJfGhoXYl96B3ljoqFy4jjKVYi1o5ML)
-![Testbed Topology](https://drive.google.com/uc?id=1uTsXHtV-QhIRD4Qz_t3Fr8K2BjwqhmvO)
-![Testbed Topology](https://drive.google.com/uc?id=1PbL5XlL6dcx8-S4XzhCpjXSo2K2dSyqD)
+#### 1.3 Start UE Simulator
+
+**Modifikasi UE Config:**
+
+1. Dapatkan IP address host (jika belum):
+```bash
+# Cek IP address host
+ip addr show | grep "inet " | grep -v "127.0.0.1"
+```
+
+![look for host's IP](https://drive.google.com/uc?id=1Y_wmfyxo4GmyB-Hd-4gs7FVasdiQsC_s)
+
+2. Edit file `configs/open5gs-ue-embb.yaml`:
+
+**Ubah gnbSearchList menggunakan IP host:**
+```yaml
+gnbSearchList:
+  - 192.168.14.137    # Ganti dengan IP host Anda
+```
+
+![modified gNBSearchlist](https://drive.google.com/uc?id=11u8lzLqJgwGNvb6GEyIUs4s7ty8WA8v7)
+
+**Catatan:** UE perlu mencari gNB menggunakan IP host karena gNB binding ke interface host. Jika menggunakan localhost atau IP lain, UE akan gagal menemukan cell ("no cell in coverage").
+
+3. Jalankan UE simulator:
+```bash
+# Terminal 2 - UE
+cd ~/Open5GS-Testbed/ueransim
+sudo ./build/nr-ue -c configs/open5gs-ue-embb.yaml
+```
+
+Output yang diharapkan:
+```
+[nas] [info] UE switches to state [MM-REGISTERED/NORMAL-SERVICE]
+[nas] [info] PDU Session establishment is successful PSI[1]
+[app] [info] Connection setup for PDU session[1] is successful, TUN interface[uesimtun0, 10.45.0.X] is up.
+```
+
+![UE simulator running correctly](https://drive.google.com/uc?id=19FR-0PNWKD2BIdNiK4OiQF8HYYrD3VDE)
+
+---
+
+#### 1.4 Test Basic Connectivity
+
+Buka terminal baru untuk melakukan testing:
+```bash
+# Terminal 3 - Testing
+
+# Test UE TUN interface
+ip addr show uesimtun0
+```
+
+![UE TUN interface tested](https://drive.google.com/uc?id=1iUk_M_vvG5Wt9GxH_iq_vI_oa9eZTifI)
+
+```bash
+# Test gateway connectivity (UE -> UPF)
+ping -I uesimtun0 -c 4 10.45.0.1
+```
+
+![gateway connectivity (UE -> UPF) tested](https://drive.google.com/uc?id=1VCdsllmpviIfT0d_-IsxdNmi4Tg4Jhp0)
+
+```bash
+# Test internet connectivity
+ping -I uesimtun0 -c 4 8.8.8.8
+```
+
+![internet connectivity tested](https://drive.google.com/uc?id=1wbJfGhoXYl96B3ljoqFy4jjKVYi1o5ML)
+
+```bash
+# Test DNS resolution
+nslookup google.com 8.8.8.8
+```
+
+![DNS resolution tested](https://drive.google.com/uc?id=1uTsXHtV-QhIRD4Qz_t3Fr8K2BjwqhmvO)
+
+```bash
+# Test HTTP/HTTPS
+curl --interface uesimtun0 -I https://www.google.com
+```
+
+![HTTP/HTTPS tested](https://drive.google.com/uc?id=1PbL5XlL6dcx8-S4XzhCpjXSo2K2dSyqD)
+
+---
+
+#### 1.5 Dokumentasi Hasil
+
+Catat hasil testing dalam format berikut:
 
 ---
 
