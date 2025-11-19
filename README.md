@@ -189,38 +189,103 @@ sudo k3s crictl images
 
 ---
 
-## Step 4: Deploy Open5GS ke K3s
+### Step 4: Deploy Open5GS ke K3s
 
-Selesaikan proses build dan import image, lalu lakukan deployment Open5GS ke K3s dengan langkah berikut:
+Sebelum menjalankan deployment, lakukan modifikasi berikut pada beberapa file agar proses deployment berjalan lancar:
 
-#### 1. Buat Script Deploy Menjadi Eksekusi
-Pastikan script deploy dapat dieksekusi:
+#### 1. Modifikasi deploy-k3s-calico.sh
+Pastikan fungsi `deploy_pod` sudah benar untuk menghindari false positive error. Contoh cuplikan kode yang benar:
 ```bash
-chmod +x deploy-k3s-calico.sh
+deploy_pod() {
+    local name=$1
+    local file=$2
+    local label=$3
+
+    POD_DEPLOY_START[$name]=$(get_timestamp_ms)
+    print_info "Deploying $name..."
+
+    kubectl apply -f "$file" &>/dev/null
+
+    # Wait for pod to exist first (avoid race condition in parallel deployments)
+    local retries=0
+    until kubectl get pod -l "$label" -n open5gs &>/dev/null; do
+        sleep 0.5
+        retries=$((retries + 1))
+        if [ $retries -gt 20 ]; then
+            POD_DEPLOY_END[$name]=$(get_timestamp_ms)
+            POD_READY_TIME[$name]=$(calc_duration ${POD_DEPLOY_START[$name]} ${POD_DEPLOY_END[$name]})
+            print_error "$name pod failed to be created after ${POD_READY_TIME[$name]}ms"
+            return 1
+        fi
+    done
+
+    # Wait for pod to be ready (increased timeout for image pull)
+    if kubectl wait --for=condition=ready pod -l "$label" -n open5gs --timeout=180s &>/dev/null; then
+        POD_DEPLOY_END[$name]=$(get_timestamp_ms)
+        POD_READY_TIME[$name]=$(calc_duration ${POD_DEPLOY_START[$name]} ${POD_DEPLOY_END[$name]})
+        print_success "$name ready in ${POD_READY_TIME[$name]}ms"
+        return 0
+    else
+        POD_DEPLOY_END[$name]=$(get_timestamp_ms)
+        POD_READY_TIME[$name]=$(calc_duration ${POD_DEPLOY_START[$name]} ${POD_DEPLOY_END[$name]})
+        print_error "$name failed to start after ${POD_READY_TIME[$name]}ms"
+        return 1
+    fi
+}
 ```
 
-#### 2. Jalankan Script Deploy
-Jalankan script untuk melakukan deployment Open5GS ke K3s:
+#### 2. Modifikasi mongod-external.yaml
+Ubah IP address MongoDB dengan IP address host Anda pada file berikut:
+`open5gs/open5gs-k3s-calico/00-foundation/mongod-external.yaml`
+
+Contoh perubahan:
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb
+  namespace: open5gs
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - port: 27017
+    targetPort: 27017
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: mongodb
+  namespace: open5gs
+subsets:
+- addresses:
+  - ip: 192.168.14.137  # Ganti dengan IP MongoDB host Anda
+  ports:
+  - port: 27017
+```
+
+#### 3. Jalankan Deployment Script
+Setelah modifikasi selesai, pastikan script dapat dieksekusi dan jalankan deployment:
 ```bash
+chmod +x deploy-k3s-calico.sh
 sudo ./deploy-k3s-calico.sh
 ```
 
-#### 3. Monitor Proses Deployment
-Pantau proses deployment di terminal baru:
-```bash
-kubectl get pods -n open5gs -w
-```
-
-Deployment akan melakukan:
+Script akan melakukan:
 - Membuat namespace `open5gs`
 - Setup Calico IPPool
 - Membuat service MongoDB
 - Deploy Network Function (NF) sesuai urutan dependency
 - Generate deployment report
 
+#### 4. Monitor Proses Deployment
+Pantau proses deployment untuk memastikan semua pod berjalan dengan baik:
+```bash
+kubectl get pods -n open5gs -w
+```
 Tunggu hingga semua pod berstatus `Running` (±2-3 menit).
 
-#### 4. Verifikasi Semua Pod
+#### 5. Verifikasi Deployment
 Setelah deployment selesai, verifikasi semua pod sudah berjalan:
 ```bash
 kubectl get pods -n open5gs
