@@ -3,7 +3,6 @@
 
 ### Step 1: Persiapan Sistem
 
-
 #### 1. Update Sistem dan Install Dependencies
 Lakukan update sistem dan install beberapa dependencies dasar yang diperlukan untuk testbed Open5GS.
 ```bash
@@ -91,42 +90,44 @@ git clone https://github.com/rayhanegar/Open5GS-Testbed
 
 ---
 
-
 ## Step 2: Setup K3s Environment dengan Calico
 
-Navigate ke direktori K3s dan jalankan setup script:
+### Step 2: Setup K3s Environment dengan Calico
 
+#### 1. Navigasi ke Direktori K3s
+Pindah ke direktori K3s yang berisi script setup:
 ```bash
 cd ~/Open5GS-Testbed/open5gs/open5gs-k3s-calico
+```
 
-# Make script executable
+#### 2. Jalankan Setup Script
+Pastikan script dapat dieksekusi dan jalankan setup:
+```bash
 chmod +x setup-k3s-environment-calico.sh
-
-# Run setup
 sudo ./setup-k3s-environment-calico.sh
 ```
 
-Script akan melakukan:
+Script akan melakukan beberapa konfigurasi otomatis:
+- Install K3s (lightweight Kubernetes)
+- Setup Calico CNI untuk networking
+- Konfigurasi static IP pool (10.10.0.0/24)
+- Setup persistent storage
+- Enable SCTP kernel module
+- Konfigurasi IP forwarding
 
-✅ Install K3s (lightweight Kubernetes)
-✅ Setup Calico CNI untuk networking
-✅ Configure static IP pool (10.10.0.0/24)
-✅ Setup persistent storage
-✅ Enable SCTP kernel module
-✅ Configure IP forwarding
-
-Verifikasi K3s Installation:
-
+#### 3. Verifikasi Instalasi K3s
+Setelah setup selesai, verifikasi instalasi K3s dan status node:
 ```bash
-# Check K3s status
+# Cek status K3s
 sudo systemctl status k3s
 
-# Check nodes
+# Cek node Kubernetes
 kubectl get nodes
-
-# Expected output:
-# NAME        STATUS   ROLES           AGE   VERSION
-# <hostname>  Ready    control-plane   Xm    v1.2X.X
+```
+Output yang diharapkan:
+```
+NAME        STATUS   ROLES           AGE   VERSION
+<hostname>  Ready    control-plane   Xm    v1.2X.X
 ```
 
 ---
