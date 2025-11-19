@@ -584,7 +584,7 @@ curl --interface uesimtun0 -I https://www.google.com
 ## Tugas 1: Konektivitas Dasar
 
 **Tanggal**: [18/11/2025]
-**Nama**: [DAWUD RIZKY ARIANTO]
+**Nama**: [Dawud Rizky Arianto | Nickolas Quinn Budiyono | Ghufron Bagaskara | Muhammad Danish Alfattah Lubis]
 **Status K3s**: [WORKING]
 
 ### gNB Registration
@@ -608,15 +608,160 @@ curl --interface uesimtun0 -I https://www.google.com
 | HTTP/HTTPS | ✓ PASS | - |
 
 ### Issues Encountered
-- SCP cannot ping NRF
-- Connection to MongoDB from within the K3s cluster fails
-- UERANSIM gNB binary failed to start because the required SCTP library `libsctp.so.1` is missing at the host
-- UERANSIM gNB is failing to bind to it's interfaces (`linkIp`, `ngapIp`, `gtpIp`, `gtpAdvertiseIp`)
-- UERANSIM UE is failing to find any cells in coverage
+
+#### 1. SCP Cannot Ping NRF
+**Problem:** SCP pod tidak memiliki utilitas `ping` yang diperlukan untuk testing konektivitas jaringan antar NF.
+
+**Error Message:**
+```
+/bin/sh: ping: not found
+```
+
+#### 2. MongoDB Connection from K3s Cluster Fails
+**Problem:** Pod Open5GS di dalam K3s cluster tidak dapat terhubung ke MongoDB yang berjalan di host.
+
+**Error Message:**
+```
+MongoDB connection failed: Connection refused
+```
+
+**Root Cause:** MongoDB default binding hanya ke `127.0.0.1` (localhost), sehingga tidak dapat diakses dari pod K3s.
+
+#### 3. UERANSIM gNB Binary Failed to Start
+**Problem:** Binary UERANSIM gNB gagal start karena missing SCTP library dependency.
+
+**Error Message:**
+```
+error while loading shared libraries: libsctp.so.1: cannot open shared object file
+```
+
+**Root Cause:** Library SCTP belum terinstall di host system.
+
+#### 4. gNB Failing to Bind to Interfaces
+**Problem:** gNB simulator gagal binding ke interfaces yang dikonfigurasi (`linkIp`, `ngapIp`, `gtpIp`, `gtpAdvertiseIp`).
+
+**Error Message:**
+```
+[ERROR] Cannot assign requested address
+```
+
+**Root Cause:** gNB config menggunakan IP address pod K3s, padahal gNB berjalan langsung di host (bukan di dalam cluster). Interface binding harus menggunakan IP address host.
+
+#### 5. UE Cannot Find Any Cells in Coverage
+**Problem:** UE simulator gagal menemukan cell dari gNB.
+
+**Error Message:**
+```
+[rrc] [error] Cell search failed, no cell in coverage
+```
+
+**Root Cause:** UE config `gnbSearchList` tidak sesuai dengan IP address dimana gNB sebenarnya binding (host IP).
+
+#### 6. curl Error 52 When Testing NRF API
+**Problem:** Saat testing NRF API dengan curl standard, mendapat error "Empty reply from server".
+
+**Error Message:**
+```
+command terminated with exit code 52
+```
+
+**Root Cause:** Open5GS SBI menggunakan HTTP/2 secara eksklusif. Curl standard mengirim HTTP/1.1 yang ditolak oleh NRF.
+
+#### 7. MongoDB Verification Timeout
+**Problem:** Script `verify-mongodb.sh` timeout saat menjalankan test dari dalam K3s cluster.
+
+**Root Cause:** Image `mongo:5.0` (275MB) belum ter-cache di K3s containerd, menyebabkan timeout saat pulling image.
+
+---
 
 ### Resolution
-- Install ping tool by adding `iputils-ping` into SCP's Dockerfile
-- Change the bindIp setting in `mongod.conf` from `127.0.0.1` to `0.0.0.0` then restart MongoDB
-- Install the SCTP library at the host: `sudo apt-get update && sudo apt-get install -y libsctp1 lksctp-tools`
-- Modify `open5gs-ue-embb.yaml` by using host's main IP address for all gNB interfaces (`linkIp`, `ngapIp`, `gtpIp`, `gtpAdvertiseIp`)
-- Modify `open5gs-ue-embb.yaml` by updating `gnbSearchList` to use host's main IP address
+
+#### 1. Install Ping Utility in SCP Container
+Tambahkan `iputils-ping` ke dalam Dockerfile SCP:
+```dockerfile
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        open5gs-scp \
+        iputils-ping \
+        curl && \
+    apt-get clean
+```
+
+Rebuild dan reimport image:
+```bash
+cd ~/Open5GS-Testbed/open5gs/open5gs-k3s-calico
+sudo ./build-import-containers.sh
+```
+
+#### 2. Configure MongoDB to Accept External Connections
+Edit konfigurasi MongoDB untuk binding ke semua interface:
+```bash
+sudo nano /etc/mongod.conf
+```
+
+Ubah `bindIp`:
+```yaml
+net:
+  port: 27017
+  bindIp: 0.0.0.0  # Ubah dari 127.0.0.1
+```
+
+Restart MongoDB:
+```bash
+sudo systemctl restart mongod
+```
+
+#### 3. Install SCTP Library on Host
+Install library SCTP yang diperlukan UERANSIM:
+```bash
+sudo apt-get update && sudo apt-get install -y libsctp1 lksctp-tools
+```
+
+Verifikasi instalasi:
+```bash
+ldconfig -p | grep sctp
+```
+
+#### 4. Configure gNB to Use Host IP Address
+Edit file `ueransim/configs/open5gs-gnb-k3s.yaml`:
+```yaml
+linkIp: 192.168.14.137    # Ganti dengan IP host Anda
+ngapIp: 192.168.14.137    # Ganti dengan IP host Anda  
+gtpIp: 192.168.14.137     # Ganti dengan IP host Anda
+gtpAdvertiseIp: 192.168.14.137  # Ganti dengan IP host Anda
+
+amfConfigs:
+  - address: 10.10.0.5    # IP address AMF pod di K3s
+    port: 38412
+```
+
+#### 5. Configure UE gnbSearchList to Use Host IP
+Edit file `ueransim/configs/open5gs-ue-embb.yaml`:
+```yaml
+gnbSearchList:
+  - 192.168.14.137    # Ganti dengan IP host Anda (sama dengan gNB binding)
+```
+
+#### 6. Use Correct HTTP/2 Flag for curl
+Gunakan flag `--http2-prior-knowledge` saat testing Open5GS SBI API:
+```bash
+# Correct command
+curl --http2-prior-knowledge http://nrf:7777/nnrf-nfm/v1/nf-instances
+
+# Wrong commands (will fail with exit code 52)
+curl http://nrf:7777/nnrf-nfm/v1/nf-instances
+curl --http2 http://nrf:7777/nnrf-nfm/v1/nf-instances
+```
+
+#### 7. Pre-cache MongoDB Image Before Verification
+Pull dan cache image MongoDB sebelum menjalankan script verifikasi:
+```bash
+# Pull image ke K3s containerd
+sudo ctr -n k8s.io images pull docker.io/library/mongo:5.0
+
+# Verifikasi image tersedia
+sudo crictl images | grep mongo
+
+# Sekarang jalankan script verifikasi
+sudo ./verify-mongodb.sh
+```
