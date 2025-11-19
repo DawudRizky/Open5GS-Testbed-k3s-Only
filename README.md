@@ -314,6 +314,8 @@ Verifikasi semua pod Open5GS sudah berjalan dengan baik:
 kubectl get pods -n open5gs -o wide
 ```
 
+![NF status](https://drive.google.com/uc?id=1NqSwi3yVUfGkxtt-thxvHnzjjzMQrS_A)
+
 Cek log untuk NF tertentu jika diperlukan:
 ```bash
 # Check logs untuk NF tertentu
@@ -341,6 +343,8 @@ Output yang diharapkan:
 ... (semua NF dengan IP yang sesuai)
 ```
 
+![Verify static IP](https://drive.google.com/uc?id=1Lsm1NGyMh4egHM0vHMZjY7YNcM2k9hAJ)
+
 ---
 
 ### 3. Verifikasi MongoDB Connectivity
@@ -356,7 +360,7 @@ sudo crictl images | grep mongo
 ```
 
 #### Konfigurasi Script
-Ubah `MONGO_IP` pada script `verify-mongodb.sh` sesuai dengan IP host Anda:
+Ubah `MONGO_IP` pada script `open5gs/open5gs-k3s-calico/verify-mongodb.sh` sesuai dengan IP host Anda:
 ```bash
 sudo nano verify-mongodb.sh
 # Ubah MONGO_IP="192.168.14.137" dengan IP host Anda
@@ -380,6 +384,8 @@ Test 2: MongoDB authentication
 Test 3: Testing from within K3s cluster...
 ✓ MongoDB is accessible from within K3s cluster
 ```
+
+![Verify mongodb connection](https://drive.google.com/uc?id=1ngGPH-N-UD2Z3Up44DJYhp63j2a0CYTw)
 
 ---
 
@@ -424,12 +430,13 @@ Output yang diharapkan berupa JSON response dengan daftar NF yang terdaftar:
   "_links": {
     "item": [
       {"href": "http://10.10.0.10:7777/nnrf-nfm/v1/nf-instances/..."},
-      ...
     ],
     "totalItemCount": 9
   }
 }
 ```
+
+![Check service connectivity](https://drive.google.com/uc?id=1lsyyS3j8zTSlwxKA6uRiIL75Ge8LSdj1)
 
 ---
 
