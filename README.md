@@ -132,6 +132,76 @@ NAME        STATUS   ROLES           AGE   VERSION
 
 ---
 
+### Step 3: Build dan Import Container Images
+
+Sebelum menjalankan build script, lakukan modifikasi berikut pada beberapa file agar proses build dan import berjalan lancar:
+
+#### 1. Modifikasi build-import-containers.sh
+Tambahkan `sudo` sebelum command docker pada file berikut:
+`open5gs/open5gs-k3s-calico/build-import-containers.sh`
+
+Contoh perubahan:
+```bash
+if sudo docker image inspect "${IMAGE_NAME}" > /dev/null 2>&1; then
+    # ...existing code...
+fi
+
+sudo docker compose build
+sudo docker images | grep open5gs
+if sudo docker image inspect "${IMAGE_NAME}" > /dev/null 2>&1; then
+    sudo docker save "${IMAGE_NAME}" | sudo k3s ctr images import -
+fi
+```
+
+#### 2. Modifikasi Dockerfile untuk Ping Tools
+Tambahkan instalasi ping tools pada setiap Dockerfile di direktori berikut:
+`open5gs/open5gs-compose/*/Dockerfile`
+
+Contoh perubahan:
+```dockerfile
+# Install system dependencies and Open5GS scp in a single layer
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends software-properties-common gnupg && \
+    add-apt-repository ppa:open5gs/latest && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        open5gs-scp \
+        open5gs-common \
+        gosu \
+        ca-certificates \
+        netbase \
+        iputils-ping \
+        curl && \
+    mkdir -p /var/log/open5gs /etc/open5gs/tls /etc/open5gs/custom /var/run/open5gs && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+```
+
+#### 3. Modifikasi YAML: Ubah Address MongoDB
+Ubah address MongoDB di file berikut dengan IP address host Anda:
+- `open5gs/open5gs-compose/pcf/pcf.yaml`
+- `open5gs/open5gs-compose/udr/udr.yaml`
+
+Contoh perubahan:
+```yaml
+db_uri: mongodb://192.168.14.137:27017/open5gs
+```
+
+#### 4. Jalankan Build Script
+Setelah modifikasi selesai, pastikan script dapat dieksekusi dan jalankan build untuk membuat dan mengimport image Open5GS:
+```bash
+chmod +x build-import-containers.sh
+sudo ./build-import-containers.sh
+```
+
+#### 5. Verifikasi Image
+Setelah proses build selesai, verifikasi image yang sudah diimport ke K3s:
+```bash
+sudo k3s crictl images
+```
+
+---
+
 ![Testbed Topology](https://drive.google.com/uc?id=1VCuvkoGtpC5SbvN5Yh-Xgq4_tZxdyuVR)
 ![Testbed Topology](https://drive.google.com/uc?id=1qOcIZ4t-bWd-eu3ZYipLjrb_cpcNfb1J)
 ![Testbed Topology](https://drive.google.com/uc?id=1VTxtYT9YlRjkypaF5CXstBCVMEFaFiGd)
