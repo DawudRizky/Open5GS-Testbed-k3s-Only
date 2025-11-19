@@ -478,9 +478,11 @@ kubectl get pod amf-0 -n open5gs -o wide
 2. Edit file `ueransim/configs/open5gs-gnb-k3s.yaml` dengan perubahan berikut:
 
 **a. Ubah semua gNB interfaces menggunakan IP host:**
+
 ![modified gNB interfaces IP](https://drive.google.com/uc?id=1VTxtYT9YlRjkypaF5CXstBCVMEFaFiGd)
 
 **b. Ubah AMF address ke IP AMF pod:**
+
 ![modified amfConfigs](https://drive.google.com/uc?id=1iNhtLFpN28bnESQ2rQrv0mCQvL5Od4Ar)
 
 **Catatan:** gNB harus binding ke interface host karena berjalan langsung di host (bukan di dalam K3s cluster). Jika menggunakan pod IP, gNB akan gagal binding dengan error "Cannot assign requested address".
@@ -497,6 +499,7 @@ cd ~/Open5GS-Testbed/ueransim
 ```
 
 Output yang diharapkan:
+
 ![gNB simulator running correctly](https://drive.google.com/uc?id=1r81KYb-bvb1wJsF-tboxndxInz07R59j)
 
 ---
@@ -516,6 +519,7 @@ ip addr
 2. Edit file `ueransim/configs/open5gs-gnb-k3s.yaml`:
 
 **Ubah gnbSearchList menggunakan IP host:**
+
 ![modified gNBSearchlist](https://drive.google.com/uc?id=11u8lzLqJgwGNvb6GEyIUs4s7ty8WA8v7)
 
 **Catatan:** UE perlu mencari gNB menggunakan IP host karena gNB binding ke interface host. Jika menggunakan localhost atau IP lain, UE akan gagal menemukan cell ("no cell in coverage").
@@ -528,6 +532,7 @@ sudo ./build/nr-ue -c configs/open5gs-ue-embb.yaml
 ```
 
 Output yang diharapkan:
+
 ![UE simulator running correctly](https://drive.google.com/uc?id=19FR-0PNWKD2BIdNiK4OiQF8HYYrD3VDE)
 
 ---
