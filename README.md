@@ -308,18 +308,128 @@ upf-0     1/1     Running   0          2m
 ## Verifikasi Deployment
 
 ### 1. Cek Status Semua NF
+Verifikasi semua pod Open5GS sudah berjalan dengan baik:
+```bash
+# List semua pods dengan detail
+kubectl get pods -n open5gs -o wide
+```
+
+Cek log untuk NF tertentu jika diperlukan:
+```bash
+# Check logs untuk NF tertentu
+kubectl logs -n open5gs amf-0
+kubectl logs -n open5gs smf-0
+kubectl logs -n open5gs upf-0
+```
 
 ---
 
 ### 2. Verifikasi Static IP Assignment
+Jalankan script verifikasi untuk memastikan setiap NF mendapat static IP sesuai konfigurasi:
+```bash
+# Run verification script
+sudo ./verify-static-ips.sh
+```
+
+Output yang diharapkan:
+```
+✓ nrf-0: 10.10.0.10
+✓ scp-0: 10.10.0.200
+✓ amf-0: 10.10.0.5
+✓ smf-0: 10.10.0.4
+✓ upf-0: 10.10.0.7
+... (semua NF dengan IP yang sesuai)
+```
 
 ---
 
 ### 3. Verifikasi MongoDB Connectivity
 
+#### Pre-requisite: Cache MongoDB Image
+Sebelum menjalankan script verifikasi, pastikan image MongoDB sudah ter-cache di K3s untuk menghindari timeout saat pulling image:
+```bash
+# Pull dan import MongoDB image ke K3s containerd
+sudo ctr -n k8s.io images pull docker.io/library/mongo:5.0
+
+# Verifikasi image sudah tersedia
+sudo crictl images | grep mongo
+```
+
+#### Konfigurasi Script
+Ubah `MONGO_IP` pada script `verify-mongodb.sh` sesuai dengan IP host Anda:
+```bash
+sudo nano verify-mongodb.sh
+# Ubah MONGO_IP="192.168.14.137" dengan IP host Anda
+```
+
+#### Jalankan Verifikasi
+```bash
+# Run MongoDB verification
+sudo ./verify-mongodb.sh
+```
+
+Output yang diharapkan:
+```
+=== MongoDB Connectivity Test ===
+Test 1: Network connectivity to 192.168.14.137:27017
+✓ Port 27017 is reachable
+
+Test 2: MongoDB authentication
+✓ Connected successfully
+
+Test 3: Testing from within K3s cluster...
+✓ MongoDB is accessible from within K3s cluster
+```
+
 ---
 
 ### 4. Cek Service Connectivity
+
+#### Catatan Penting: Open5GS Menggunakan HTTP/2
+Open5GS SBI (Service Based Interface) hanya mendukung **HTTP/2** secara langsung. Saat melakukan testing dengan `curl`, **harus** menggunakan flag `--http2-prior-knowledge`. 
+
+**Perintah yang salah:**
+```bash
+# ✗ Akan gagal dengan exit code 52 (Empty reply from server)
+curl http://nrf:7777/nnrf-nfm/v1/nf-instances
+curl --http2 http://nrf:7777/nnrf-nfm/v1/nf-instances
+```
+
+**Perintah yang benar:**
+```bash
+# ✓ Menggunakan HTTP/2 langsung
+curl --http2-prior-knowledge http://nrf:7777/nnrf-nfm/v1/nf-instances
+```
+
+#### Test NF Connectivity
+Verifikasi konektivitas antar NF menggunakan NRF API:
+```bash
+# Test dari AMF pod ke NRF
+kubectl exec -it -n open5gs amf-0 -- /bin/bash
+
+# Di dalam pod:
+curl --http2-prior-knowledge http://nrf:7777/nnrf-nfm/v1/nf-instances
+```
+
+Atau test langsung dari NRF pod:
+```bash
+# Test NRF API dari dalam NRF pod
+kubectl exec -n open5gs nrf-0 -- \
+    curl -s --http2-prior-knowledge http://nrf:7777/nnrf-nfm/v1/nf-instances
+```
+
+Output yang diharapkan berupa JSON response dengan daftar NF yang terdaftar:
+```json
+{
+  "_links": {
+    "item": [
+      {"href": "http://10.10.0.10:7777/nnrf-nfm/v1/nf-instances/..."},
+      ...
+    ],
+    "totalItemCount": 9
+  }
+}
+```
 
 ---
 
