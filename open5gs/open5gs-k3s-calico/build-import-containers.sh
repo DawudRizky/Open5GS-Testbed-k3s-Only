@@ -25,7 +25,7 @@ ALL_EXIST=true
 echo "Checking existing images..."
 for nf in "${NF_CONTAINERS[@]}"; do
     IMAGE_NAME="open5gs-${nf}:latest"
-    if docker image inspect "${IMAGE_NAME}" > /dev/null 2>&1; then
+    if sudo docker image inspect "${IMAGE_NAME}" > /dev/null 2>&1; then
         echo "✓ ${IMAGE_NAME} exists"
     else
         echo "✗ ${IMAGE_NAME} not found"
@@ -66,11 +66,11 @@ if [ "$SHOULD_BUILD" = true ]; then
     
     echo ""
     echo "Building containers with docker compose..."
-    docker compose build
+    sudo docker compose build
     
     echo ""
     echo "Built Open5GS images:"
-    docker images | grep open5gs
+    sudo docker images | grep open5gs
 else
     echo ""
     echo "Using existing images."
@@ -83,8 +83,8 @@ echo "Importing containers to k3s..."
 for nf in "${NF_CONTAINERS[@]}"; do
     IMAGE_NAME="open5gs-${nf}:latest"
     echo "Importing ${IMAGE_NAME}..."
-    if docker image inspect "${IMAGE_NAME}" > /dev/null 2>&1; then
-        docker save "${IMAGE_NAME}" | sudo k3s ctr images import -
+    if sudo docker image inspect "${IMAGE_NAME}" > /dev/null 2>&1; then
+        sudo docker save "${IMAGE_NAME}" | sudo k3s ctr images import -
         echo "✓ Successfully imported ${IMAGE_NAME}"
     else
         echo "✗ Warning: ${IMAGE_NAME} not found, skipping..."
