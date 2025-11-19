@@ -1,4 +1,3 @@
-
 ## Instalasi dan Setup
 
 ### Step 1: Persiapan Sistem
@@ -304,6 +303,23 @@ amf-0     1/1     Running   0          2m
 smf-0     1/1     Running   0          2m
 upf-0     1/1     Running   0          2m
 ```
+---
+
+## Verifikasi Deployment
+
+### 1. Cek Status Semua NF
+
+---
+
+### 2. Verifikasi Static IP Assignment
+
+---
+
+### 3. Verifikasi MongoDB Connectivity
+
+---
+
+### 4. Cek Service Connectivity
 
 ---
 
