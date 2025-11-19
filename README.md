@@ -140,19 +140,6 @@ Sebelum menjalankan build script, lakukan modifikasi berikut pada beberapa file 
 Tambahkan `sudo` sebelum command docker pada file berikut:
 `open5gs/open5gs-k3s-calico/build-import-containers.sh`
 
-Contoh perubahan:
-```bash
-if sudo docker image inspect "${IMAGE_NAME}" > /dev/null 2>&1; then
-    # ...existing code...
-fi
-
-sudo docker compose build
-sudo docker images | grep open5gs
-if sudo docker image inspect "${IMAGE_NAME}" > /dev/null 2>&1; then
-    sudo docker save "${IMAGE_NAME}" | sudo k3s ctr images import -
-fi
-```
-
 #### 2. Modifikasi Dockerfile untuk Ping Tools
 Tambahkan instalasi ping tools pada setiap Dockerfile di direktori berikut:
 `open5gs/open5gs-compose/*/Dockerfile`
