@@ -21,6 +21,50 @@ sudo apt-get install -y \
 	wireshark \
 	wireshark-common
 
+# Install Docker
+sudo apt update
+sudo apt install ca-certificates curl
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+sudo tee /etc/apt/sources.list.d/docker.sources <<EOF
+Types: deb
+URIs: https://download.docker.com/linux/ubuntu
+Suites: $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}")
+Components: stable
+Signed-By: /etc/apt/keyrings/docker.asc
+EOF
+
+sudo apt update
+
+sudo apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+sudo systemctl start docker
+
+# Install SCTP library
+sudo apt-get update && sudo apt-get install -y libsctp1 lksctp-tools
+
+# Install MongoDB
+sudo apt-get install gnupg curl
+
+curl -fsSL https://www.mongodb.org/static/pgp/server-8.0.asc | sudo gpg -o /usr/share/keyrings/mongodb-server-8.0.gpg --dearmor
+
+echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-8.0.gpg ] https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.2 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-8.2.list
+
+sudo apt-get update
+
+sudo apt-get install -y mongodb-org
+
+sudo systemctl start mongod
+
+sudo systemctl enable mongod
+
+# Modifikasi bindIp di mongod.conf
+sudo nano /etc/mongod.conf
+# Ubah bindIp menjadi 0.0.0.0
+sudo systemctl restart mongod
+
 # Create log directories
 sudo mkdir -p /mnt/data/open5gs-logs
 sudo chmod 777 /mnt/data/open5gs-logs
