@@ -1,3 +1,35 @@
+
+## Instalasi dan Setup
+
+### Step 1: Persiapan Sistem
+
+```bash
+# Update system
+sudo apt-get update
+sudo apt-get upgrade -y
+
+# Install dependencies
+sudo apt-get install -y \
+	curl \
+	git \
+	iptables \
+	iptables-persistent \
+	net-tools \
+	iputils-ping \
+	traceroute \
+	tcpdump \
+	wireshark \
+	wireshark-common
+
+# Create log directories
+sudo mkdir -p /mnt/data/open5gs-logs
+sudo chmod 777 /mnt/data/open5gs-logs
+
+# Clone this repo on your server
+git clone https://github.com/rayhanegar/Open5GS-Testbed
+```
+
+
 ![Testbed Topology](https://drive.google.com/uc?id=1VCuvkoGtpC5SbvN5Yh-Xgq4_tZxdyuVR)
 ![Testbed Topology](https://drive.google.com/uc?id=1qOcIZ4t-bWd-eu3ZYipLjrb_cpcNfb1J)
 ![Testbed Topology](https://drive.google.com/uc?id=1VTxtYT9YlRjkypaF5CXstBCVMEFaFiGd)
