@@ -11,13 +11,15 @@ RUN apt-get update && \
     add-apt-repository ppa:open5gs/latest && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
-    open5gs-upf \
-    open5gs-common \
-    gosu \
-    iproute2 \
-    iptables \
-    ca-certificates \
-    netbase && \
+        open5gs-upf \
+        open5gs-common \
+        gosu \
+        iproute2 \
+        iptables \
+        ca-certificates \
+        netbase \
+        iputils-ping \
+        curl && \
     mkdir -p /var/log/open5gs /etc/open5gs/tls /etc/open5gs/custom /var/run/open5gs && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
