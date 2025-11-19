@@ -89,6 +89,47 @@ Clone repository testbed ke server Anda:
 git clone https://github.com/rayhanegar/Open5GS-Testbed
 ```
 
+---
+
+
+## Step 2: Setup K3s Environment dengan Calico
+
+Navigate ke direktori K3s dan jalankan setup script:
+
+```bash
+cd ~/Open5GS-Testbed/open5gs/open5gs-k3s-calico
+
+# Make script executable
+chmod +x setup-k3s-environment-calico.sh
+
+# Run setup
+sudo ./setup-k3s-environment-calico.sh
+```
+
+Script akan melakukan:
+
+✅ Install K3s (lightweight Kubernetes)
+✅ Setup Calico CNI untuk networking
+✅ Configure static IP pool (10.10.0.0/24)
+✅ Setup persistent storage
+✅ Enable SCTP kernel module
+✅ Configure IP forwarding
+
+Verifikasi K3s Installation:
+
+```bash
+# Check K3s status
+sudo systemctl status k3s
+
+# Check nodes
+kubectl get nodes
+
+# Expected output:
+# NAME        STATUS   ROLES           AGE   VERSION
+# <hostname>  Ready    control-plane   Xm    v1.2X.X
+```
+
+---
 
 ![Testbed Topology](https://drive.google.com/uc?id=1VCuvkoGtpC5SbvN5Yh-Xgq4_tZxdyuVR)
 ![Testbed Topology](https://drive.google.com/uc?id=1qOcIZ4t-bWd-eu3ZYipLjrb_cpcNfb1J)
