@@ -1,3 +1,4 @@
+![Testbed Topology](https://drive.google.com/uc?id=1VCuvkoGtpC5SbvN5Yh-Xgq4_tZxdyuVR)
 ## Tugas 1: Konektivitas Dasar
 
 **Tanggal**: [18/11/2025]
